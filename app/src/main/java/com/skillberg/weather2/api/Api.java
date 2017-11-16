@@ -13,8 +13,8 @@ public interface Api {
 
     @GET("weather")
     Call<CurrentWeather> getCurrentWeather(
-            @Query("lat") float latitude,
-            @Query("lon") float longitude,
+            @Query("lat") double latitude,
+            @Query("lon") double longitude,
 
             @Query("appid") String apiKey,
             @Query("units") String units

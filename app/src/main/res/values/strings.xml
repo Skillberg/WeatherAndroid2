@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">Weather 2</string>
     <string name="send_to_service">Send to service</string>
+
+    <string name="title_updating_weather">Updating</string>
+    <string name="text_updating_weather">Updating weather…</string>
+
+    <string name="title_current_weather">%1$d° — %2$s</string>
+    <string name="text_current_weather">Min: %1$d°, max: %2$d°</string>
 </resources>

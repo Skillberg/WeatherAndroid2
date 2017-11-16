@@ -1,39 +1,29 @@
 package com.skillberg.weather2;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
-import android.content.ComponentName;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.location.Criteria;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
+
+import com.skillberg.weather2.api.models.CurrentWeather;
 
 public class MainActivity extends AppCompatActivity {
+
+    public static final String ACTION_GOT_WEATHER = "com.skillberg.weather2.ACTION_GOT_WEATHER";
+    public static final String EXTRA_CURRENT_WEATHER = "current_weather";
 
     private static final String TAG = "Weather/MainActivity";
 
     private static final int REQUEST_CODE_LOCATION_PERMISSION = 0;
-
-    private LocationManager locationManager;
-
-    @Nullable
-    private Messenger messenger;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,53 +33,35 @@ public class MainActivity extends AppCompatActivity {
 
         checkAndRequestGeoPermission();
 
-        Intent intent = new Intent(this, WeatherService.class);
-        intent.putExtra(WeatherService.EXTRA_COUNT_TO, 10);
+        SharedPreferences sharedPreferences = getSharedPreferences("weather", MODE_PRIVATE);
+        long lastUpdate = sharedPreferences.getLong("last_update", 0);
 
-        startService(intent);
-
-        findViewById(R.id.send_btn).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (messenger != null) {
-                    Message message = new Message();
-
-                    try {
-                        messenger.send(message);
-                    } catch (RemoteException e) {
-                        Log.e(TAG, "Failed to send message: " + e.getMessage());
-                    }
-                }
-            }
-        });
+        Log.i(TAG, "Last update: " + lastUpdate);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
 
-        bindService(new Intent(this, WeatherService.class),
-                serviceConnection,
-                Context.BIND_AUTO_CREATE);
+        IntentFilter intentFilter = new IntentFilter(ACTION_GOT_WEATHER);
+        registerReceiver(weatherReceiver, intentFilter);
     }
 
     @Override
     protected void onStop() {
-        if (messenger != null) {
-            unbindService(serviceConnection);
-        }
+        unregisterReceiver(weatherReceiver);
 
         super.onStop();
     }
 
-    @Override
-    protected void onDestroy() {
-        if (locationManager != null) {
-            locationManager.removeUpdates(locationListener);
-        }
-
-        super.onDestroy();
+    /**
+     * Запускаем сервис
+     */
+    private void startWeatherService() {
+        Intent intent = new Intent(this, WeatherService.class);
+        startService(intent);
     }
+
 
     /**
      * Проверяем, есть ли разрешение и запрашиваем его, если нет
@@ -105,40 +77,7 @@ public class MainActivity extends AppCompatActivity {
                     REQUEST_CODE_LOCATION_PERMISSION);
 
         } else {
-            setupLocation();
-        }
-    }
-
-    /**
-     * Подписываемся на обновления гео
-     */
-    @SuppressLint("MissingPermission")
-    private void setupLocation() {
-        // Получаем LocationManager
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
-        // Получаем лучший провайдер
-        Criteria criteria = new Criteria();
-
-        String bestProvider = locationManager.getBestProvider(criteria, true);
-
-        Log.v(TAG, "Best provider: " + bestProvider);
-
-
-        if (bestProvider != null) {
-            // Получаем последнюю доступную позицию
-            Location lastKnownLocation = locationManager.getLastKnownLocation(bestProvider);
-
-            Log.v(TAG, "Last location: " + lastKnownLocation);
-
-
-            // Подписываемся на обновления
-            locationManager.requestLocationUpdates(
-                    bestProvider, // провайдер
-                    0, // мин. время
-                    0, // мин. расстояние
-                    locationListener
-            );
+            startWeatherService();
         }
     }
 
@@ -150,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
             if (grantResults.length > 0
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                setupLocation();
+                startWeatherService();
             } else {
                 // Нет гео
                 // Попробуем показать ещё раз
@@ -160,49 +99,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Соединение с сервисом
-     */
-    private final ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.i(TAG, "Service connected!");
-
-            messenger = new Messenger(service);
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.i(TAG, "Service disconnected!");
-
-            messenger = null;
-        }
-    };
 
     /**
-     * Слушатель для обновления гео
+     * Ресивер для получения погоды из сервиса
      */
-    private final LocationListener locationListener = new LocationListener() {
-        @Override
-        public void onLocationChanged(Location location) {
-            Log.v(TAG, "Location changed: " + location);
-
-        }
+    private class WeatherReceiver extends BroadcastReceiver {
 
         @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {
-            Log.v(TAG, "Status changed: " + provider + ", status: " + status);
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_GOT_WEATHER.equals(intent.getAction())) {
+                CurrentWeather currentWeather = intent.getParcelableExtra(EXTRA_CURRENT_WEATHER);
+
+                Log.i(TAG, "Got weather: " + currentWeather);
+            }
         }
 
-        @Override
-        public void onProviderEnabled(String provider) {
-            Log.v(TAG, "Provider enabled: " + provider);
-        }
+    }
 
-        @Override
-        public void onProviderDisabled(String provider) {
-            Log.v(TAG, "Provider disabled: " + provider);
-        }
-    };
+    private final WeatherReceiver weatherReceiver = new WeatherReceiver();
+
 
 }

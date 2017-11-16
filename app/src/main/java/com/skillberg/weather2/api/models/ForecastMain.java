@@ -1,14 +1,17 @@
 package com.skillberg.weather2.api.models;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.google.gson.annotations.SerializedName;
 
-public class ForecastMain {
+public class ForecastMain implements Parcelable {
 
     private float temp;
 
-    private int pressure;
+    private float pressure;
 
-    private int humidity;
+    private float humidity;
 
     @SerializedName("temp_min")
     private float minTemp;
@@ -16,15 +19,38 @@ public class ForecastMain {
     @SerializedName("temp_max")
     private float maxTemp;
 
+    public ForecastMain() {
+    }
+
+    protected ForecastMain(Parcel in) {
+        temp = in.readFloat();
+        pressure = in.readFloat();
+        humidity = in.readFloat();
+        minTemp = in.readFloat();
+        maxTemp = in.readFloat();
+    }
+
+    public static final Creator<ForecastMain> CREATOR = new Creator<ForecastMain>() {
+        @Override
+        public ForecastMain createFromParcel(Parcel in) {
+            return new ForecastMain(in);
+        }
+
+        @Override
+        public ForecastMain[] newArray(int size) {
+            return new ForecastMain[size];
+        }
+    };
+
     public float getTemp() {
         return temp;
     }
 
-    public int getPressure() {
+    public float getPressure() {
         return pressure;
     }
 
-    public int getHumidity() {
+    public float getHumidity() {
         return humidity;
     }
 
@@ -36,4 +62,28 @@ public class ForecastMain {
         return maxTemp;
     }
 
+    @Override
+    public String toString() {
+        return "ForecastMain{" +
+                "temp=" + temp +
+                ", pressure=" + pressure +
+                ", humidity=" + humidity +
+                ", minTemp=" + minTemp +
+                ", maxTemp=" + maxTemp +
+                '}';
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeFloat(temp);
+        dest.writeFloat(pressure);
+        dest.writeFloat(humidity);
+        dest.writeFloat(minTemp);
+        dest.writeFloat(maxTemp);
+    }
 }
