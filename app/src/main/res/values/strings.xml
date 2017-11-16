@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Weather 2</string>
+    <string name="send_to_service">Send to service</string>
 </resources>

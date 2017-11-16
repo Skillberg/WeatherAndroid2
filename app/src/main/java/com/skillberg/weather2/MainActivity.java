@@ -2,17 +2,27 @@ package com.skillberg.weather2;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -22,6 +32,9 @@ public class MainActivity extends AppCompatActivity {
 
     private LocationManager locationManager;
 
+    @Nullable
+    private Messenger messenger;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -29,6 +42,44 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         checkAndRequestGeoPermission();
+
+        Intent intent = new Intent(this, WeatherService.class);
+        intent.putExtra(WeatherService.EXTRA_COUNT_TO, 10);
+
+        startService(intent);
+
+        findViewById(R.id.send_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (messenger != null) {
+                    Message message = new Message();
+
+                    try {
+                        messenger.send(message);
+                    } catch (RemoteException e) {
+                        Log.e(TAG, "Failed to send message: " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        bindService(new Intent(this, WeatherService.class),
+                serviceConnection,
+                Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStop() {
+        if (messenger != null) {
+            unbindService(serviceConnection);
+        }
+
+        super.onStop();
     }
 
     @Override
@@ -110,6 +161,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Соединение с сервисом
+     */
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.i(TAG, "Service connected!");
+
+            messenger = new Messenger(service);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.i(TAG, "Service disconnected!");
+
+            messenger = null;
+        }
+    };
+
+    /**
      * Слушатель для обновления гео
      */
     private final LocationListener locationListener = new LocationListener() {
@@ -134,4 +204,5 @@ public class MainActivity extends AppCompatActivity {
             Log.v(TAG, "Provider disabled: " + provider);
         }
     };
+
 }
