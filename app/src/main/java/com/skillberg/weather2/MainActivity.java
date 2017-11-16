@@ -15,6 +15,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import com.skillberg.weather2.api.models.CurrentWeather;
+import com.crashlytics.android.Crashlytics;
+import io.fabric.sdk.android.Fabric;
 
 public class MainActivity extends AppCompatActivity {
 

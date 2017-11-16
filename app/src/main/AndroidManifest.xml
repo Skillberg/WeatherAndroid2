@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
+        android:name=".App"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -30,6 +31,9 @@
             </intent-filter>
         </receiver>
 
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="2e3e0c309cb2001f9197cea3ab3e2e9cc1d7d1ae" />
     </application>
 
 </manifest>
